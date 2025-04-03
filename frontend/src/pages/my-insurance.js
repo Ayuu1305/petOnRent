@@ -16,6 +16,7 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import mongoose from "mongoose";
 import { motion } from "framer-motion";
+import { API_URL } from "../utils/api";
 
 const InsurancePage = () => {
   const { user } = useAuth();
@@ -112,7 +113,7 @@ const InsurancePage = () => {
   const fetchInsurances = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/api/insurance`, {
+      const response = await fetch(`${API_URL}/insurance`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -139,15 +140,12 @@ const InsurancePage = () => {
 
     try {
       setLoading(true);
-      const response = await fetch(
-        `http://localhost:5000/api/insurance/${id}/cancel`,
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      const response = await fetch(`${API_URL}/insurance/${id}/cancel`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -256,7 +254,7 @@ const InsurancePage = () => {
 
       console.log("Sending insurance request:", requestBody);
 
-      const response = await fetch(`http://localhost:5000/api/insurance`, {
+      const response = await fetch(`${API_URL}/insurance`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -420,7 +418,7 @@ const InsurancePage = () => {
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/insurance/${selectedInsurance._id}/claim`,
+        `${API_URL}/insurance/${selectedInsurance._id}/claim`,
         {
           method: "POST",
           headers: {

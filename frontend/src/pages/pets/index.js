@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import axios from "axios";
+import { API_URL } from "../../utils/api";
 
 // Simple star rating component
 const StarRating = ({ rating }) => {
@@ -31,7 +32,7 @@ const PetListing = () => {
   useEffect(() => {
     const fetchPets = async () => {
       try {
-        const { data } = await axios.get("http://localhost:5000/api/pets");
+        const { data } = await axios.get(`${API_URL}/pets`);
         setPets(data);
         setError(null);
       } catch (error) {

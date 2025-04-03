@@ -4,7 +4,9 @@ export const API_URL =
 
 // Helper function to get full API URL
 export const getApiUrl = (endpoint) => {
-  return `${API_URL}${endpoint}`;
+  const baseUrl = API_URL.endsWith("/") ? API_URL.slice(0, -1) : API_URL;
+  const cleanEndpoint = endpoint.startsWith("/") ? endpoint.slice(1) : endpoint;
+  return `${baseUrl}/${cleanEndpoint}`;
 };
 
 // Common headers

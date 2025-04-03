@@ -9,6 +9,7 @@ import {
   FiTrash2,
   FiEdit,
 } from "react-icons/fi";
+import { API_URL } from "../utils/api";
 
 const AppointmentPage = () => {
   const { user } = useAuth();
@@ -145,7 +146,7 @@ const AppointmentPage = () => {
 
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/api/appointments`, {
+      const response = await fetch(`${API_URL}/appointments`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

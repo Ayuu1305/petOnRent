@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
+import { API_URL } from "../../utils/api";
 
 const PetManagement = () => {
   const [pets, setPets] = useState([]);
@@ -10,7 +11,7 @@ const PetManagement = () => {
   useEffect(() => {
     const fetchPets = async () => {
       try {
-        const { data } = await axios.get("http://localhost:5000/api/admin/pets");
+        const { data } = await axios.get(`${API_URL}/admin/pets`);
         setPets(data);
       } catch (error) {
         console.error("Error fetching pets:", error);
@@ -24,7 +25,7 @@ const PetManagement = () => {
     if (!confirm("Are you sure you want to delete this pet?")) return;
     try {
       const token = localStorage.getItem("adminToken");
-      await axios.delete(`http://localhost:5000/api/admin/pets/${id}`, {
+      await axios.delete(`${API_URL}/admin/pets/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setPets(pets.filter((pet) => pet._id !== id)); // Remove from UI
@@ -59,7 +60,11 @@ const PetManagement = () => {
             {pets.map((pet) => (
               <tr key={pet._id} className="text-center">
                 <td className="border p-2">
-                  <img src={pet.imageUrl} alt={pet.name} className="w-16 h-16 object-cover" />
+                  <img
+                    src={pet.imageUrl}
+                    alt={pet.name}
+                    className="w-16 h-16 object-cover"
+                  />
                 </td>
                 <td className="border p-2">{pet.name}</td>
                 <td className="border p-2">{pet.category}</td>
