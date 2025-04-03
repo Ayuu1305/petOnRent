@@ -1,0 +1,113 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+html {
+  scroll-behavior: smooth;  /* ✅ Enable smooth scrolling */
+}
+
+
+body {
+ 
+  color: var(--foreground);
+  background: var(--background);
+  font-family:  Arial, Helvetica, sans-serif;
+}
+
+/* Navbar link styles */
+.nav-link {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 5px;
+  color: #000; /* Black text color */
+  text-decoration: none;
+  font-family: 'Lato', sans-serif; /* Ensure 'Lato' font is applied */
+}
+
+/* Hover effect */
+.nav-link::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  left: 50%;
+  bottom: 0;
+  background-color: #ff0000; /* Red color for underline */
+  transition: width 0.3s ease, left 0.3s ease;
+}
+
+/* On hover, expand the underline */
+.nav-link:hover::after {
+  width: 100%;
+  left: 0;
+}
+
+.filter-btn {
+  padding: 8px 16px;
+  border: 2px solid #ddd;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filter-btn.active {
+  background-color: #ff7f50;
+  color: white;
+}
+
+.btn-primary {
+  background-color: #ff7f50;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 5px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background-color: #e66b40;
+}
+
+.btn-secondary {
+  background-color: #4a90e2;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 5px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background-color: #3a7ac8;
+}
+
+.navbar {
+  position: fixed;   /* ✅ Keep Navbar fixed on every page */
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: #ffffff; /* Change based on your theme */
+  z-index: 1000; /* ✅ Ensure Navbar is above other elements */
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.page-container {
+  margin-top: 70px; /* ✅ Prevent content from hiding under the Navbar */
+  padding: 20px;
+}
