@@ -141,14 +141,22 @@ const connectDB = async () => {
     }
 
     console.log("🔗 Attempting to connect to MongoDB...");
+    console.log(
+      "MongoDB URI:",
+      process.env.MONGO_URI.replace(/\/\/[^@]+@/, "//****:****@")
+    ); // Log URI with credentials hidden
+
     await mongoose.connect(process.env.MONGO_URI, {
       dbName: "petOnRent",
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
     });
     console.log("✅ MongoDB connected successfully!");
   } catch (err) {
-    console.error("❌ MongoDB connection error:", err);
+    console.error("❌ MongoDB connection error:", err.message);
+    console.error("Error details:", {
+      name: err.name,
+      code: err.code,
+      reason: err.reason?.message,
+    });
     console.log("Retrying in 5 seconds...");
     setTimeout(connectDB, 5000);
   }
