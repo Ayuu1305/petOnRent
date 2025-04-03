@@ -8,12 +8,10 @@
   NEXT_USE_NETLIFY_EDGE = "1"
   NODE_VERSION = "18"
 
-# Ignore certain paths for secrets scanning
+# Configure secrets scanning
 [secrets]
-SECRETS_SCAN_OMIT_PATHS = [
-  ".next/**/*",
-  "out/**/*",
-  ".netlify/**/*"
+SECRETS_SCAN_OMIT_KEYS = [
+  "RAZORPAY_KEY_ID"
 ]
 
 [[plugins]]
