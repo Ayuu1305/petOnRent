@@ -13,6 +13,12 @@ import Order from "./models/Order.js";
 import Pet from "./models/Pet.js";
 import Razorpay from "razorpay";
 import userAuth from "./middleware/userAuth.js";
+import morgan from "morgan";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import multer from "multer";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
+import cloudinary from "cloudinary";
 
 dotenv.config();
 
@@ -26,6 +32,25 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(morgan("dev"));
+
+// Cloudinary configuration
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Configure multer storage for Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "petonrent",
+    allowed_formats: ["jpg", "jpeg", "png"],
+  },
+});
+
+const upload = multer({ storage: storage });
 
 // Initialize Razorpay
 const razorpay = new Razorpay({
