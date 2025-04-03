@@ -1,5 +1,16 @@
+// API Configuration
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+// Helper function to get full API URL
+export const getApiUrl = (endpoint) => {
+  return `${API_URL}${endpoint}`;
+};
+
+// Common headers
+export const headers = {
+  "Content-Type": "application/json",
+};
 
 export const fetchPets = async () => {
   const response = await fetch(`${API_URL}/pets`);
