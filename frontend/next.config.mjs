@@ -11,8 +11,14 @@ const nextConfig = {
   distDir: "out",
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+  },
+  // Don't expose Razorpay keys in client bundle
+  serverRuntimeConfig: {
     RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID,
     RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET,
+  },
+  publicRuntimeConfig: {
+    RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID,
   },
 };
 
