@@ -1,14 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  output: "export",
   images: {
     unoptimized: true,
   },
-  // Disable server features for static export
-  trailingSlash: true,
-  // Indicate that the export should be treated as standalone
-  distDir: "out",
+  // Enable API routes
+  api: {
+    bodyParser: {
+      sizeLimit: "1mb",
+    },
+  },
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
     // Use the public key from environment

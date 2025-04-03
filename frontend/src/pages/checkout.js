@@ -17,6 +17,7 @@ import {
 } from "react-icons/fi";
 import Script from "next/script";
 import { useAuth } from "../context/AuthContext";
+import { API_URL } from "../utils/api";
 
 const Checkout = () => {
   const router = useRouter();
@@ -228,7 +229,7 @@ const Checkout = () => {
 
       console.log("Complete order data:", JSON.stringify(orderData, null, 2));
 
-      const response = await fetch("http://localhost:5000/api/orders", {
+      const response = await fetch(`${API_URL}/orders`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

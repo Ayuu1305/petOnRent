@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { API_URL } from "../utils/api";
 
 const RazorpayButton = ({ userId, pets, amount }) => {
   const [loading, setLoading] = useState(false);
@@ -7,11 +8,12 @@ const RazorpayButton = ({ userId, pets, amount }) => {
     setLoading(true);
 
     try {
-      // ✅ Step 1: Create order from backend
-      const response = await fetch("/api/payment/create-order", {
+      // Step 1: Create order from backend
+      const response = await fetch(`${API_URL}/payment/create-order`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({ userId, pets, amount }),
       });
@@ -23,9 +25,9 @@ const RazorpayButton = ({ userId, pets, amount }) => {
         return;
       }
 
-      // ✅ Step 2: Open Razorpay payment popup
+      // Step 2: Open Razorpay payment popup
       const options = {
-        key: orderData.key_id, // Razorpay public key
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, // Razorpay public key
         amount: amount * 100, // Convert INR to paise
         currency: "INR",
         name: "PetOnRent",
@@ -34,11 +36,12 @@ const RazorpayButton = ({ userId, pets, amount }) => {
         handler: async function (response) {
           console.log("Payment Response:", response);
 
-          // ✅ Step 3: Verify payment on backend
-          const verifyRes = await fetch("/api/payment/verify-payment", {
+          // Step 3: Verify payment on backend
+          const verifyRes = await fetch(`${API_URL}/payment/verify-payment`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
             },
             body: JSON.stringify({
               order_id: response.razorpay_order_id,
@@ -62,8 +65,8 @@ const RazorpayButton = ({ userId, pets, amount }) => {
       const rzp1 = new window.Razorpay(options);
       rzp1.open();
     } catch (error) {
-      console.error("Payment Error:", error);
-      alert("Payment process failed!");
+      console.error("Payment error:", error);
+      alert("Payment failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -73,9 +76,9 @@ const RazorpayButton = ({ userId, pets, amount }) => {
     <button
       onClick={handlePayment}
       disabled={loading}
-      className="bg-blue-600 text-white px-4 py-2 rounded"
+      className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
     >
-      {loading ? "Processing..." : "Pay with Razorpay"}
+      {loading ? "Processing..." : "Pay Now"}
     </button>
   );
 };

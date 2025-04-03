@@ -1,8 +1,17 @@
 import express from "express";
 import Order from "../models/Order.js";
 import userAuth from "../middleware/userAuth.js";
+import Razorpay from "razorpay";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const router = express.Router();
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
 
 // Create a new order
 router.post("/", userAuth, async (req, res) => {
@@ -110,6 +119,35 @@ router.get("/:id", userAuth, async (req, res) => {
       message: "Failed to fetch order",
       error: error.message,
     });
+  }
+});
+
+// Create order
+router.post("/create", async (req, res) => {
+  const { amount } = req.body;
+
+  if (!amount || amount <= 0 || amount > 50000000) {
+    return res.status(400).json({
+      success: false,
+      message:
+        "Invalid amount. Please enter a valid amount within allowed limits.",
+    });
+  }
+
+  try {
+    const options = {
+      amount,
+      currency: "INR",
+      receipt: `order_rcptid_${Date.now()}`,
+    };
+
+    const order = await razorpay.orders.create(options);
+    return res.status(200).json({ success: true, order });
+  } catch (error) {
+    console.error("Razorpay Order Error:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Razorpay order creation failed." });
   }
 });
 
