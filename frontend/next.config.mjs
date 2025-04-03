@@ -10,6 +10,7 @@ const nextConfig = {
   // Indicate that the export should be treated as standalone
   distDir: "out",
   env: {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
     RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID,
     RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET,
   },
