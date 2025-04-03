@@ -3,7 +3,7 @@ import Pet from "../models/Pet.js";
 import User from "../models/User.js";
 import { hashPassword } from "../utils/hashPassword.js";
 import adminAuth from "../middleware/authMiddleware.js";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 const router = express.Router();
@@ -172,7 +172,6 @@ router.post("/create-admin", async (req, res) => {
   }
 });
 
-
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -208,19 +207,17 @@ router.post("/login", async (req, res) => {
 
     console.log("✅ Token generated successfully!");
 
-    res.status(200).json({ message: "Login successful", token , role:admin.role,});
+    res
+      .status(200)
+      .json({ message: "Login successful", token, role: admin.role });
   } catch (error) {
     console.error("❌ Login error:", error.message); // Log error message
     res.status(500).json({ error: "Something went wrong: " + error.message });
   }
 });
 
-
-
 router.get("/test", (req, res) => {
   res.send("Admin Routes are working!");
 });
-
-
 
 export default router;
