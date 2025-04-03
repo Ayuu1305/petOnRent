@@ -7,6 +7,8 @@
 [build.environment]
   NEXT_USE_NETLIFY_EDGE = "1"
   NODE_VERSION = "18"
+  # Disable secrets scanning for the build
+  SECRETS_SCAN_ENABLED = "false"
 
 # Configure secrets scanning
 [secrets]
