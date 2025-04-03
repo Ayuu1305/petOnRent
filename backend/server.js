@@ -136,17 +136,14 @@ app.post("/api/reviews", async (req, res) => {
 // MongoDB Connection with Retry Logic
 const connectDB = async () => {
   try {
-    if (!process.env.MONGO_URI) {
-      throw new Error("MONGO_URI environment variable is not defined");
-    }
+    // If MONGO_URI is not set, use local MongoDB
+    const mongoUri =
+      process.env.MONGO_URI || "mongodb://localhost:27017/petOnRent";
 
     console.log("🔗 Attempting to connect to MongoDB...");
-    console.log(
-      "MongoDB URI:",
-      process.env.MONGO_URI.replace(/\/\/[^@]+@/, "//****:****@")
-    ); // Log URI with credentials hidden
+    console.log("MongoDB URI:", mongoUri.replace(/\/\/[^@]+@/, "//****:****@")); // Log URI with credentials hidden
 
-    await mongoose.connect(process.env.MONGO_URI, {
+    await mongoose.connect(mongoUri, {
       dbName: "petOnRent",
     });
     console.log("✅ MongoDB connected successfully!");
