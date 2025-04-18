@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
 import { motion } from "framer-motion";
+import { API_URL } from "../../utils/api";
 
 export default function AddPet() {
   const router = useRouter();
@@ -24,7 +25,7 @@ export default function AddPet() {
     e.preventDefault();
     try {
       const token = localStorage.getItem("adminToken");
-      await axios.post("http://localhost:5000/api/admin/add", pet, {
+      await axios.post(`${API_URL}/admin/add`, pet, {
         headers: { Authorization: `Bearer ${token}` },
       });
       router.push("/admin");
@@ -36,13 +37,13 @@ export default function AddPet() {
   const inputVariants = {
     hover: {
       scale: 1.02,
-      transition: { duration: 0.2 }
+      transition: { duration: 0.2 },
     },
     focus: {
       scale: 1.02,
       boxShadow: "0 0 0 3px rgba(59, 130, 246, 0.5)",
-      transition: { duration: 0.2 }
-    }
+      transition: { duration: 0.2 },
+    },
   };
 
   const formVariants = {
@@ -52,9 +53,9 @@ export default function AddPet() {
       y: 0,
       transition: {
         duration: 0.5,
-        staggerChildren: 0.1
-      }
-    }
+        staggerChildren: 0.1,
+      },
+    },
   };
 
   const buttonVariants = {
@@ -70,7 +71,7 @@ export default function AddPet() {
         variants={formVariants}
         className="max-w-2xl mx-auto bg-white rounded-lg shadow-2xl p-8"
       >
-        <motion.h2 
+        <motion.h2
           className="text-3xl font-bold text-center text-gray-800 mb-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -81,7 +82,11 @@ export default function AddPet() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {[
             { name: "name", placeholder: "Pet Name", type: "text" },
-            { name: "category", type: "select", options: ["dog", "cat", "bird"] },
+            {
+              name: "category",
+              type: "select",
+              options: ["dog", "cat", "bird"],
+            },
             { name: "description", placeholder: "Description", type: "text" },
             { name: "color", placeholder: "Color", type: "text" },
             { name: "rentPrice", placeholder: "Rent Price", type: "number" },
@@ -102,7 +107,7 @@ export default function AddPet() {
                   variants={inputVariants}
                   className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:outline-none transition-colors text-black bg-white"
                 >
-                  {field.options.map(option => (
+                  {field.options.map((option) => (
                     <option key={option} value={option}>
                       {option.charAt(0).toUpperCase() + option.slice(1)}
                     </option>

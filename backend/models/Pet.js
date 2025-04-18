@@ -5,6 +5,7 @@ const reviewSchema = new mongoose.Schema({
   rating: { type: Number, required: true },
   comment: { type: String, default: "" },
   date: { type: Date, default: Date.now },
+  orderType: { type: String, enum: ["purchase", "rent"], default: "purchase" },
 });
 
 const petSchema = new mongoose.Schema(
@@ -14,7 +15,7 @@ const petSchema = new mongoose.Schema(
       type: String,
       enum: ["dog", "cat", "bird"], // Only these values are allowed
       required: true,
-    },  
+    },
     description: { type: String, required: true },
     color: { type: String, required: true },
     rentPrice: { type: Number, required: true },
@@ -26,7 +27,6 @@ const petSchema = new mongoose.Schema(
     averageRating: { type: Number, default: 0 },
   },
   { timestamps: true }
- 
 );
 
 const Pet = mongoose.model("Pet", petSchema);

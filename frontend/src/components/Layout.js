@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Navbar from "./Navbar";
+import Chatbot from "./Chatbot";
 import { useRouter } from "next/router";
 
 const Layout = ({ children }) => {
@@ -52,6 +53,7 @@ const Layout = ({ children }) => {
     <div className="min-h-screen flex flex-col">
       {showNavbar && <Navbar />}
       <main className="flex-grow">{children}</main>
+      <Chatbot />
     </div>
   );
 };

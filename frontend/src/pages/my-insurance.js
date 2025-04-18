@@ -141,10 +141,10 @@ const InsurancePage = () => {
     try {
       setLoading(true);
       const response = await fetch(`${API_URL}/insurance/${id}/cancel`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
       });
 
       if (!response.ok) {
@@ -744,13 +744,13 @@ const InsurancePage = () => {
                       </div>
                       {insurance.status === "active" && (
                         <div className="flex justify-end space-x-2 mt-4 pt-4 border-t">
-                          <button
-                            onClick={() => handleCancel(insurance._id)}
-                            className="text-red-600 hover:text-red-800 flex items-center text-sm"
-                          >
-                            <FiAlertCircle className="mr-1" />
-                            Cancel
-                          </button>
+                        <button
+                          onClick={() => handleCancel(insurance._id)}
+                          className="text-red-600 hover:text-red-800 flex items-center text-sm"
+                        >
+                          <FiAlertCircle className="mr-1" />
+                          Cancel
+                        </button>
                           <button
                             onClick={() => {
                               setSelectedInsurance(insurance);

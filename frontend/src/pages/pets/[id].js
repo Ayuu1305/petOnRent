@@ -6,6 +6,7 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "../../context/CartContext";
 import axios from "axios";
+import { API_URL } from "../../utils/api";
 
 const PetDetails = () => {
   const router = useRouter();
@@ -19,21 +20,36 @@ const PetDetails = () => {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
+  const fetchPetDetails = async () => {
+    try {
+      const { data } = await axios.get(`${API_URL}/pets/${id}`);
+      setPet(data);
+    } catch (error) {
+      console.error("Error fetching pet details:", error);
+      setError("Failed to fetch pet details.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (id) {
-      const fetchPetDetails = async () => {
-        try {
-          const { data } = await axios.get(`http://localhost:5000/api/pets/${id}`);
-          setPet(data);
-        } catch (error) {
-          console.error("Error fetching pet details:", error);
-          setError("Failed to fetch pet details.");
-        } finally {
-          setLoading(false);
-        }
-      };
       fetchPetDetails();
     }
+  }, [id]);
+
+  // Add event listener for review updates
+  useEffect(() => {
+    const handleReviewUpdate = () => {
+      if (id) {
+        fetchPetDetails();
+      }
+    };
+
+    window.addEventListener("reviewUpdated", handleReviewUpdate);
+    return () => {
+      window.removeEventListener("reviewUpdated", handleReviewUpdate);
+    };
   }, [id]);
 
   useEffect(() => {
@@ -54,7 +70,8 @@ const PetDetails = () => {
     if (!pet) return;
 
     const deliveryCharges = 200;
-    const totalAmount = pet.rentPrice * rentalDays + pet.deposit + deliveryCharges;
+    const totalAmount =
+      pet.rentPrice * rentalDays + pet.deposit + deliveryCharges;
 
     let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
@@ -70,7 +87,7 @@ const PetDetails = () => {
       toDate,
       totalAmount,
       type: "rent",
-      category: pet.category // Added to differentiate from buy
+      category: pet.category, // Added to differentiate from buy
     });
 
     localStorage.setItem("cart", JSON.stringify(cart));
@@ -101,6 +118,48 @@ const PetDetails = () => {
     localStorage.setItem("cart", JSON.stringify(cart));
     updateCartCount(cart.length);
     router.push("/pets");
+  };
+
+  // Add a function to render reviews
+  const renderReviews = () => {
+    if (!pet.reviews || pet.reviews.length === 0) {
+      return (
+        <div className="text-center py-4 text-gray-500">
+          No reviews yet. Be the first to review this pet!
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {pet.reviews.map((review, index) => (
+          <div key={index} className="border-b pb-4">
+            <div className="flex items-center mb-2">
+              <div className="flex">
+                {Array(5)
+                  .fill(0)
+                  .map((_, i) => (
+                    <span
+                      key={i}
+                      className={
+                        i < review.rating ? "text-yellow-400" : "text-gray-300"
+                      }
+                    >
+                      ★
+                    </span>
+                  ))}
+              </div>
+              <span className="text-sm text-gray-500 ml-2">
+                {new Date(review.date).toLocaleDateString()}
+              </span>
+            </div>
+            {review.comment && (
+              <p className="text-gray-700 mt-1">{review.comment}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    );
   };
 
   if (loading) return <p className="text-center text-lg">Loading...</p>;
@@ -135,16 +194,27 @@ const PetDetails = () => {
           </motion.div>
 
           {/* Details Section */}
-          <motion.div className="w-full transform-style-preserve-3d">
+          <motion.div className="space-y-6">
             <motion.div
               className="bg-gray-50 p-4 rounded-xl shadow-sm transform-style-preserve-3d hover:shadow-md transition-all duration-300 mb-4"
               whileHover={{ scale: 1.01, translateZ: "20px" }}
             >
               <h1 className="text-2xl font-bold text-black">{pet.name}</h1>
-              <p className="text-lg mt-1 text-black">Security Deposit: <span className="font-semibold">₹{pet.deposit}</span></p>
-              <p className="text-lg mt-1 text-black">Rent Price: <span className="font-semibold">₹{pet.rentPrice}/day</span></p>
-              <p className="text-lg mt-1 text-black">Buy Price: <span className="font-semibold">₹{pet.buyPrice}</span></p>
-              <p className="text-lg mt-1 text-black">Color: <span className="font-semibold">{pet.color}</span></p>
+              <p className="text-lg mt-1 text-black">
+                Security Deposit:{" "}
+                <span className="font-semibold">₹{pet.deposit}</span>
+              </p>
+              <p className="text-lg mt-1 text-black">
+                Rent Price:{" "}
+                <span className="font-semibold">₹{pet.rentPrice}/day</span>
+              </p>
+              <p className="text-lg mt-1 text-black">
+                Buy Price:{" "}
+                <span className="font-semibold">₹{pet.buyPrice}</span>
+              </p>
+              <p className="text-lg mt-1 text-black">
+                Color: <span className="font-semibold">{pet.color}</span>
+              </p>
             </motion.div>
 
             {!pet.available && (
@@ -158,12 +228,12 @@ const PetDetails = () => {
             )}
 
             {/* Rental Details */}
-            <motion.div
-              className="bg-gray-50 p-4 rounded-xl shadow-sm transform-style-preserve-3d hover:shadow-md transition-all duration-300 mb-4 min-h-[250px]"
-            >
+            <motion.div className="bg-gray-50 p-4 rounded-xl shadow-sm transform-style-preserve-3d hover:shadow-md transition-all duration-300 mb-4 min-h-[250px]">
               <div className="space-y-3">
                 <div>
-                  <label className="text-lg font-semibold text-black block mb-1">Rental Duration</label>
+                  <label className="text-lg font-semibold text-black block mb-1">
+                    Rental Duration
+                  </label>
                   <motion.input
                     type="number"
                     className="w-full border-2 border-gray-200 p-2 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-300 text-black"
@@ -175,7 +245,9 @@ const PetDetails = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-lg font-semibold text-black block mb-1">From Date</label>
+                  <label className="text-lg font-semibold text-black block mb-1">
+                    From Date
+                  </label>
                   <motion.input
                     type="date"
                     className="w-full border-2 border-gray-200 p-2 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-300 text-black"
@@ -195,13 +267,44 @@ const PetDetails = () => {
                         className="bg-gray-100 p-3 rounded-lg w-full"
                       >
                         <p className="text-lg text-black">
-                          To Date: <span className="font-semibold">{toDate}</span>
+                          To Date:{" "}
+                          <span className="font-semibold">{toDate}</span>
                         </p>
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
               </div>
+            </motion.div>
+
+            {/* Reviews Section */}
+            <motion.div
+              className="bg-gray-50 p-4 rounded-xl shadow-sm transform-style-preserve-3d hover:shadow-md transition-all duration-300 mb-4"
+              whileHover={{ scale: 1.01, translateZ: "20px" }}
+            >
+              <h2 className="text-xl font-bold text-black mb-2">Reviews</h2>
+              <div className="flex items-center mb-2">
+                <div className="flex">
+                  {Array(5)
+                    .fill(0)
+                    .map((_, i) => (
+                      <span
+                        key={i}
+                        className={
+                          i < Math.round(pet.averageRating || 0)
+                            ? "text-yellow-400"
+                            : "text-gray-300"
+                        }
+                      >
+                        ★
+                      </span>
+                    ))}
+                </div>
+                <span className="text-sm text-gray-500 ml-2">
+                  ({pet.reviews?.length || 0} reviews)
+                </span>
+              </div>
+              {renderReviews()}
             </motion.div>
 
             {/* Buttons */}
@@ -223,7 +326,9 @@ const PetDetails = () => {
                 onClick={handleBuyNow}
                 whileHover={{ scale: 1.02, translateZ: "30px" }}
                 whileTap={{ scale: 0.98 }}
-                style={{ background: "linear-gradient(45deg, #16a34a, #22c55e)" }}
+                style={{
+                  background: "linear-gradient(45deg, #16a34a, #22c55e)",
+                }}
               >
                 Buy Now
               </motion.button>

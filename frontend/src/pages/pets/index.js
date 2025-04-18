@@ -5,6 +5,8 @@ import Image from "next/image";
 import { useRouter } from "next/router";
 import axios from "axios";
 import { API_URL } from "../../utils/api";
+import Link from "next/link";
+import { motion } from "framer-motion";
 
 // Simple star rating component
 const StarRating = ({ rating }) => {
@@ -29,21 +31,33 @@ const PetListing = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
 
+  const fetchPets = async () => {
+    try {
+      const { data } = await axios.get(`${API_URL}/pets`);
+      setPets(data);
+      setError(null);
+    } catch (error) {
+      console.error("Error fetching pets:", error);
+      setError("Failed to load pets. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchPets = async () => {
-      try {
-        const { data } = await axios.get(`${API_URL}/pets`);
-        setPets(data);
-        setError(null);
-      } catch (error) {
-        console.error("Error fetching pets:", error);
-        setError("Failed to load pets. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
+    fetchPets();
+  }, []);
+
+  // Add event listener for review updates
+  useEffect(() => {
+    const handleReviewUpdate = () => {
+      fetchPets();
     };
 
-    fetchPets();
+    window.addEventListener("reviewUpdated", handleReviewUpdate);
+    return () => {
+      window.removeEventListener("reviewUpdated", handleReviewUpdate);
+    };
   }, []);
 
   // Set initial filter from URL query
@@ -76,6 +90,58 @@ const PetListing = () => {
       { shallow: true }
     );
   };
+
+  const renderPetCard = (pet) => (
+    <motion.div
+      key={pet._id}
+      className="bg-white rounded-xl shadow-md overflow-hidden transform-style-preserve-3d hover:shadow-xl transition-all duration-300 cursor-pointer"
+      whileHover={{ scale: 1.02, translateZ: "20px" }}
+      onClick={() => router.push(`/pets/${pet._id}`)}
+    >
+      <div className="relative h-48">
+        <Image
+          src={pet.imageUrl}
+          alt={pet.name}
+          layout="fill"
+          objectFit="cover"
+          className="transform hover:scale-110 transition-transform duration-300"
+        />
+      </div>
+      <div className="p-4">
+        <h3 className="text-xl font-semibold text-gray-800 mb-2">{pet.name}</h3>
+        <p className="text-gray-600 mb-2 line-clamp-2">{pet.description}</p>
+
+        {/* Rating and Reviews */}
+        <div className="flex items-center mb-2">
+          <div className="flex">
+            {Array(5)
+              .fill(0)
+              .map((_, i) => (
+                <span
+                  key={i}
+                  className={
+                    i < Math.round(pet.averageRating || 0)
+                      ? "text-yellow-400"
+                      : "text-gray-300"
+                  }
+                >
+                  ★
+                </span>
+              ))}
+          </div>
+          <span className="text-sm text-gray-500 ml-2">
+            ({pet.reviews?.length || 0} reviews)
+          </span>
+        </div>
+
+        <div className="flex justify-between items-center mt-4">
+          <div className="text-lg font-bold text-gray-900">
+            ₹{pet.buyPrice.toLocaleString()}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
 
   return (
     <div className="bg-[#F9F9F9] min-h-screen p-6 pt-16">
@@ -121,44 +187,7 @@ const PetListing = () => {
           <p className="text-center text-gray-600">No pets found.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {filteredPets.map((pet) => (
-              <div
-                key={pet._id}
-                className="bg-white shadow-lg rounded-lg p-4 transition-transform hover:scale-105 cursor-pointer"
-                onClick={() => router.push(`/pets/${pet._id}`)}
-              >
-                <div className="w-full h-48 rounded-lg overflow-hidden">
-                  <Image
-                    src={pet.imageUrl}
-                    alt={pet.name}
-                    width={300}
-                    height={200}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <h3 className="text-lg font-semibold mt-2 text-black">
-                  {pet.name}
-                </h3>
-                <p className="text-sm text-gray-600">{pet.description}</p>
-                <p className="font-bold mt-1 text-black">
-                  Rent: ₹{pet.rentPrice}/day
-                </p>
-                <p className="font-bold mt-1 text-black">
-                  Buy: ₹{pet.buyPrice}
-                </p>
-                <div className="mt-2">
-                  <StarRating rating={pet.averageRating || 0} />
-                  <span className="text-xs text-gray-500 ml-2">
-                    ({pet.reviews?.length || 0} reviews)
-                  </span>
-                </div>
-                {!pet.available && (
-                  <p className="text-red-500 font-semibold">
-                    Currently Not Available
-                  </p>
-                )}
-              </div>
-            ))}
+            {filteredPets.map((pet) => renderPetCard(pet))}
           </div>
         )}
       </div>

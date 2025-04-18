@@ -1,23 +1,55 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Send, User, Mail, MessageSquare } from "lucide-react";
+import { useRouter } from "next/router";
 
 const Feedback = () => {
-  const [formData, setFormData] = useState({ name: "", email: "", message: "" });
+  const router = useRouter();
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    message: "",
+  });
   const [focusedField, setFocusedField] = useState(null);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Add handleSubmit function to handle form submission
-  const handleSubmit = (e) => {
-    e.preventDefault(); // Prevent default form submission (page refresh)
-    console.log("Feedback submitted:", formData);
-    // Optionally, you can add an API call here to submit the feedback
-    // e.g., fetch("/api/feedback", { method: "POST", body: JSON.stringify(formData) })
-    // Reset form after submission
-    setFormData({ name: "", email: "", message: "" });
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const response = await fetch(
+        `http://localhost:10000/api/feedback/submit`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          mode: "cors",
+          body: JSON.stringify(formData),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert("Feedback submitted successfully!");
+        setFormData({ name: "", email: "", message: "" });
+        router.push("/");
+      } else {
+        alert(data.message || "Failed to submit feedback");
+      }
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      alert("An error occurred while submitting feedback. Please try again.");
+    }
   };
 
   const containerVariants = {
@@ -54,7 +86,9 @@ const Feedback = () => {
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
             We Value Your Feedback
           </h1>
-          <p className="text-gray-600 text-lg">Help us improve your experience</p>
+          <p className="text-gray-600 text-lg">
+            Help us improve your experience
+          </p>
         </motion.div>
 
         <motion.div
@@ -160,7 +194,10 @@ const Feedback = () => {
               aria-label="Submit feedback form" // Add aria-label for accessibility
             >
               Submit Feedback
-              <Send size={20} className="transform group-hover:translate-x-1 transition-transform duration-300" />
+              <Send
+                size={20}
+                className="transform group-hover:translate-x-1 transition-transform duration-300"
+              />
             </motion.button>
           </form>
         </motion.div>

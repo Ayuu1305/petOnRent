@@ -231,11 +231,40 @@ const Cart = ({ isOpen, onClose }) => {
   };
 
   const removeFromCart = (cartItemId) => {
+    // Remove item from cart
     const updatedCart = cart.filter((item) => item.cartItemId !== cartItemId);
     setCart(updatedCart);
     localStorage.setItem("cart", JSON.stringify(updatedCart));
     updateCartCount(updatedCart.length);
     updateSuggestions(updatedCart);
+
+    // Clear discount and coupon
+    setDiscount(0);
+    setCoupon("");
+    localStorage.removeItem("cartDiscount");
+    localStorage.removeItem("cartCoupon");
+
+    // Update price details without discount
+    const subtotal = updatedCart.reduce((acc, item) => {
+      if (item.type === "rent") {
+        return (
+          acc + (parseInt(item.rentPrice) || 0) * (parseInt(item.days) || 1)
+        );
+      } else {
+        return acc + (parseInt(item.buyPrice) || 0);
+      }
+    }, 0);
+
+    const gst = subtotal * 0.18;
+    const total = subtotal + gst;
+
+    setPriceDetails({
+      subtotal,
+      discount: 0,
+      discountAmount: 0,
+      gst,
+      total,
+    });
   };
 
   const addSuggestedItem = (suggestion) => {
@@ -325,14 +354,10 @@ const Cart = ({ isOpen, onClose }) => {
         total: priceDetails.total,
       };
 
+      // Store checkout data without clearing cart
       localStorage.setItem("checkoutData", JSON.stringify(checkoutData));
 
-      // Clear coupon and discount after successful checkout
-      setDiscount(0);
-      setCoupon("");
-      localStorage.removeItem("cartDiscount");
-      localStorage.removeItem("cartCoupon");
-
+      // Navigate to checkout page
       router.push("/checkout");
     } catch (error) {
       console.error("Error during checkout:", error);
@@ -349,6 +374,39 @@ const Cart = ({ isOpen, onClose }) => {
     localStorage.removeItem("cartDiscount");
     localStorage.removeItem("cartCoupon");
     setShowSuggestions(true);
+  };
+
+  const handleQuantityChange = (cartItemId, change) => {
+    const updatedCart = cart.map((item) => {
+      if (item.cartItemId === cartItemId) {
+        if (item.type === "rent") {
+          const newDays = Math.max(1, (parseInt(item.days) || 1) + change);
+          return {
+            ...item,
+            days: newDays,
+          };
+        } else {
+          const newQuantity = Math.max(
+            1,
+            (parseInt(item.quantity) || 1) + change
+          );
+          return {
+            ...item,
+            quantity: newQuantity,
+          };
+        }
+      }
+      return item;
+    });
+
+    setCart(updatedCart);
+    localStorage.setItem("cart", JSON.stringify(updatedCart));
+
+    // Clear discount when quantity changes
+    setDiscount(0);
+    setCoupon("");
+    localStorage.removeItem("cartDiscount");
+    localStorage.removeItem("cartCoupon");
   };
 
   // Animation variants
@@ -405,27 +463,27 @@ const Cart = ({ isOpen, onClose }) => {
             animate="open"
             exit="closed"
             variants={sidebarVariants}
-            className="fixed right-0 top-0 h-full w-full md:w-[500px] lg:w-[600px] bg-white shadow-2xl z-50 overflow-y-auto"
+            className="fixed right-0 top-0 h-full w-full md:w-[400px] lg:w-[450px] bg-white shadow-2xl z-50 overflow-y-auto"
           >
             {/* Cart content */}
             <motion.div
               initial="hidden"
               animate="visible"
               variants={itemVariants}
-              className="p-6"
+              className="p-4"
             >
               <motion.button
                 onClick={onClose}
-                className="absolute top-4 right-4 text-2xl text-gray-800 hover:text-red-500 transition-colors duration-300 p-2 rounded-full hover:bg-gray-100"
+                className="absolute top-4 right-4 text-xl text-gray-800 hover:text-red-500 transition-colors duration-300 p-2 rounded-full hover:bg-gray-100"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
               >
                 <FiX />
               </motion.button>
 
-              <div className="flex items-center gap-3 mb-6 border-b pb-4">
-                <FiShoppingCart className="text-2xl text-gray-800" />
-                <h1 className="text-2xl font-bold text-[#222]">Your Cart</h1>
+              <div className="flex items-center gap-2 mb-4 border-b pb-3">
+                <FiShoppingCart className="text-xl text-gray-800" />
+                <h1 className="text-xl font-bold text-[#222]">Your Cart</h1>
               </div>
 
               <AnimatePresence>
@@ -440,12 +498,12 @@ const Cart = ({ isOpen, onClose }) => {
                       animate={{ scale: [1, 1.1, 1] }}
                       transition={{ repeat: Infinity, duration: 2 }}
                     >
-                      <FiShoppingCart className="text-5xl text-gray-300 mb-4" />
+                      <FiShoppingCart className="text-4xl text-gray-300 mb-3" />
                     </motion.div>
-                    <p className="text-[#444] text-lg">Your cart is empty</p>
+                    <p className="text-[#444]">Your cart is empty</p>
                   </motion.div>
                 ) : (
-                  <motion.div className="space-y-4">
+                  <motion.div className="space-y-3">
                     <AnimatePresence>
                       {cart.map((item, i) => (
                         <motion.div
@@ -456,25 +514,24 @@ const Cart = ({ isOpen, onClose }) => {
                           animate="visible"
                           exit="exit"
                           layout
-                          className="group flex items-center justify-between bg-gray-50 p-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 border border-transparent hover:border-gray-200"
+                          className="group flex items-center justify-between bg-gray-50 p-3 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 border border-transparent hover:border-gray-200"
                         >
-                          <div className="flex items-center gap-4">
-                            <div className="relative overflow-hidden rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="relative overflow-hidden rounded-lg w-16 h-16">
                               <Image
                                 src={item.imageUrl}
                                 alt={item.name || "Product"}
-                                width={80}
-                                height={80}
-                                style={{ width: "auto", height: "auto" }}
+                                width={64}
+                                height={64}
                                 className="rounded-lg object-cover transition-transform duration-500 group-hover:scale-110"
                               />
                             </div>
                             <div>
-                              <h3 className="text-lg font-semibold text-[#222] group-hover:text-indigo-600 transition-colors">
+                              <h3 className="text-base font-semibold text-[#222] group-hover:text-indigo-600 transition-colors">
                                 {item.name || "Unnamed Item"}
                               </h3>
                               {item.type === "buy" ? (
-                                <p className="text-[#444]">
+                                <p className="text-sm text-[#444]">
                                   <span className="font-medium">
                                     Buy Price:
                                   </span>{" "}
@@ -484,14 +541,14 @@ const Cart = ({ isOpen, onClose }) => {
                                 </p>
                               ) : (
                                 <>
-                                  <p className="text-[#444]">
+                                  <p className="text-sm text-[#444]">
                                     <span className="font-medium">Rent:</span>{" "}
                                     <span className="text-indigo-600">
                                       ₹{item.rentPrice || 0}
                                     </span>
                                     /day
                                   </p>
-                                  <p className="text-[#444]">
+                                  <p className="text-sm text-[#444]">
                                     <span className="font-medium">
                                       Deposit:
                                     </span>{" "}
@@ -499,7 +556,7 @@ const Cart = ({ isOpen, onClose }) => {
                                       ₹{parseInt(item.deposit) || 0}
                                     </span>
                                   </p>
-                                  <p className="text-[#444]">
+                                  <p className="text-sm text-[#444]">
                                     <span className="font-medium">Days:</span>{" "}
                                     {item.days || 1}
                                   </p>
@@ -532,7 +589,7 @@ const Cart = ({ isOpen, onClose }) => {
                                         (item.days || 1)
                                     )
                                   }
-                                  className="border-x p-1 w-12 text-[#222] text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                  className="border-x p-1 w-10 text-[#222] text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
                                 />
                                 <motion.button
                                   whileHover={{ scale: 1.1 }}
@@ -548,7 +605,7 @@ const Cart = ({ isOpen, onClose }) => {
                             )}
                             <motion.button
                               onClick={() => removeFromCart(item.cartItemId)}
-                              className="text-red-500 text-sm hover:text-red-700 transition-colors duration-300 group-hover:underline"
+                              className="text-red-500 text-xs hover:text-red-700 transition-colors duration-300 group-hover:underline"
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
                             >
@@ -563,25 +620,24 @@ const Cart = ({ isOpen, onClose }) => {
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="mt-6"
+                      className="mt-4"
                     >
-                      <h2 className="text-xl font-semibold text-[#222] mb-4">
+                      <h2 className="text-lg font-semibold text-[#222] mb-3">
                         Suggested Products
                       </h2>
-                      <div className="flex overflow-x-auto space-x-3 pb-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                      <div className="flex overflow-x-auto space-x-2 pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                         {suggestions.map((suggestion) => (
                           <motion.div
                             key={suggestion.id}
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="flex-shrink-0 w-32 bg-gray-50 p-2 rounded-lg shadow-md"
+                            className="flex-shrink-0 w-24 bg-gray-50 p-2 rounded-lg shadow-sm"
                           >
                             <Image
                               src={suggestion.image}
                               alt={suggestion.name}
-                              width={60}
-                              height={60}
-                              style={{ width: "auto", height: "auto" }}
+                              width={48}
+                              height={48}
                               className="rounded-md mx-auto mb-1"
                             />
                             <div className="text-center">
@@ -597,7 +653,7 @@ const Cart = ({ isOpen, onClose }) => {
                                 onClick={() => addSuggestedItem(suggestion)}
                                 className="mt-1 bg-indigo-600 text-white p-1 rounded-full mx-auto flex"
                               >
-                                <FiPlus size={14} />
+                                <FiPlus size={12} />
                               </motion.button>
                             </div>
                           </motion.div>
@@ -610,12 +666,12 @@ const Cart = ({ isOpen, onClose }) => {
                       <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="mt-6 p-5 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg shadow-md"
+                        className="mt-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg shadow-sm"
                       >
-                        <h2 className="text-xl font-semibold text-[#222] border-b pb-2">
+                        <h2 className="text-lg font-semibold text-[#222] border-b pb-2">
                           Apply Coupon
                         </h2>
-                        <div className="mt-3">
+                        <div className="mt-2">
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
                               <input
@@ -625,48 +681,48 @@ const Cart = ({ isOpen, onClose }) => {
                                   setCoupon(e.target.value.toUpperCase())
                                 }
                                 placeholder="Enter coupon code (e.g., SAVE10)"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black placeholder-gray-500"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black placeholder-gray-500 text-sm"
                               />
                             </div>
                             <button
                               onClick={handleCouponSubmit}
                               disabled={discount > 0}
-                              className="ml-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                              className="ml-2 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm"
                             >
                               Apply
                             </button>
                           </div>
                           {error && (
-                            <div className="mt-2 text-red-600 text-sm">
+                            <div className="mt-2 text-red-600 text-xs">
                               {error}
                             </div>
                           )}
                           {successMessage && (
-                            <div className="mt-2 text-green-600 text-sm">
+                            <div className="mt-2 text-green-600 text-xs">
                               {successMessage}
                             </div>
                           )}
                           {discount > 0 && (
-                            <div className="mt-2 flex items-center justify-between text-green-600">
+                            <div className="mt-2 flex items-center justify-between text-green-600 text-sm">
                               <span>Coupon applied: {discount}%</span>
                               <button
                                 onClick={handleRemoveCoupon}
-                                className="text-sm hover:text-red-600"
+                                className="text-xs hover:text-red-600"
                               >
                                 Remove
                               </button>
                             </div>
                           )}
                         </div>
-                        <div className="mt-4">
+                        <div className="mt-3">
                           <h3 className="text-sm font-medium text-[#222] mb-2">
                             Available Coupons:
                           </h3>
-                          <div className="space-y-2">
+                          <div className="space-y-1">
                             {offers.map((offer, index) => (
                               <div
                                 key={index}
-                                className="flex items-center justify-between text-sm p-2 rounded-lg bg-white"
+                                className="flex items-center justify-between text-xs p-2 rounded-lg bg-white"
                               >
                                 <div className="flex items-center">
                                   <span className="text-[#444]">
@@ -688,34 +744,34 @@ const Cart = ({ isOpen, onClose }) => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
-                        className="mt-6 p-5 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg shadow-md"
+                        className="mt-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg shadow-sm"
                       >
-                        <h2 className="text-xl font-semibold text-[#222] border-b pb-2">
+                        <h2 className="text-lg font-semibold text-[#222] border-b pb-2">
                           Cart Summary
                         </h2>
-                        <div className="mt-3 space-y-2">
-                          <p className="flex justify-between text-[#444]">
+                        <div className="mt-2 space-y-1">
+                          <p className="flex justify-between text-sm text-[#444]">
                             <span>Subtotal:</span>
                             <span className="font-medium">
                               ₹{priceDetails.subtotal.toLocaleString()}
                             </span>
                           </p>
                           {priceDetails.discount > 0 && (
-                            <p className="flex justify-between text-[#444]">
+                            <p className="flex justify-between text-sm text-[#444]">
                               <span>Discount ({priceDetails.discount}%):</span>
                               <span className="font-medium text-green-500">
                                 -₹{priceDetails.discountAmount.toLocaleString()}
                               </span>
                             </p>
                           )}
-                          <p className="flex justify-between text-[#444]">
+                          <p className="flex justify-between text-sm text-[#444]">
                             <span>GST (18%):</span>
                             <span className="font-medium">
                               ₹{priceDetails.gst.toLocaleString()}
                             </span>
                           </p>
                           <hr className="my-2 border-gray-300" />
-                          <h3 className="flex justify-between text-lg font-bold text-[#222] py-1">
+                          <h3 className="flex justify-between text-base font-bold text-[#222] py-1">
                             <span>Total:</span>
                             <span className="text-indigo-600">
                               ₹{priceDetails.total.toLocaleString()}
@@ -726,12 +782,12 @@ const Cart = ({ isOpen, onClose }) => {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.7 }}
-                          className="mt-4"
+                          className="mt-3"
                         >
                           <button
                             onClick={handleCheckout}
                             disabled={loading}
-                            className="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                            className="w-full bg-indigo-600 text-white py-2 px-3 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold"
                           >
                             {loading ? "Processing..." : "Proceed to Checkout"}
                           </button>

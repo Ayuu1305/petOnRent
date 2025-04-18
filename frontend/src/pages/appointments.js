@@ -49,7 +49,7 @@ const AppointmentPage = () => {
   const fetchAppointments = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:5000/api/appointments`, {
+      const response = await fetch(`${API_URL}/appointments`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -72,28 +72,24 @@ const AppointmentPage = () => {
 
   const fetchUserPets = async () => {
     try {
-      // This endpoint should return pets owned by the user
-      const response = await fetch(`http://localhost:5000/api/pets/user`, {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/pets/user`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch pets");
+        throw new Error("Failed to fetch user pets");
       }
 
       const data = await response.json();
-      console.log("User pets data received:", data);
-      if (data.success) {
-        setUserPets(data.pets || []);
-      } else {
-        console.error("Error in response:", data.message);
-        setUserPets([]);
-      }
+      setUserPets(data.pets || []);
     } catch (err) {
+      setError(err.message);
       console.error("Error fetching user pets:", err);
-      setUserPets([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -192,15 +188,12 @@ const AppointmentPage = () => {
 
     try {
       setLoading(true);
-      const response = await fetch(
-        `http://localhost:5000/api/appointments/${id}/cancel`,
-        {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      const response = await fetch(`${API_URL}/appointments/${id}/cancel`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
 
       if (!response.ok) {
         throw new Error("Failed to cancel appointment");

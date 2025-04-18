@@ -18,6 +18,7 @@ import {
 import Script from "next/script";
 import { useAuth } from "../context/AuthContext";
 import { API_URL } from "../utils/api";
+import axios from "axios";
 
 const Checkout = () => {
   const router = useRouter();
@@ -148,6 +149,22 @@ const Checkout = () => {
 
       // Transform cart items into the format expected by the backend
       const items = cart.map((item) => {
+        // Check if the item is a suggested product
+        if (item.id && item.id.startsWith("sugg")) {
+          return {
+            name: item.name || "",
+            type: "product",
+            productId: item.id, // Use the suggestion ID as productId
+            buyPrice: parseFloat(item.price) || 0,
+            rentPrice: 0,
+            deposit: 0,
+            days: 0,
+            fromDate: new Date().toISOString(),
+            toDate: new Date().toISOString(),
+          };
+        }
+
+        // For regular items
         const baseItem = {
           name: item.name || "",
           type: item.type || "buy",
@@ -159,12 +176,8 @@ const Checkout = () => {
             ).toISOString(),
         };
 
-        // Check if the item is a product (has productId or is a product type)
-        if (
-          item.productId ||
-          item.type === "product" ||
-          item.name === "Dog Toy"
-        ) {
+        // Check if the item is a product
+        if (item.productId || item.type === "product") {
           return {
             ...baseItem,
             type: "product",
@@ -229,33 +242,159 @@ const Checkout = () => {
 
       console.log("Complete order data:", JSON.stringify(orderData, null, 2));
 
-      const response = await fetch(`${API_URL}/orders`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(orderData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create order");
-      }
-
-      const data = await response.json();
-      console.log("Order created successfully:", data);
-      setOrderId(data.order._id);
-
       if (paymentMethod === "COD") {
-        // For COD orders, clear cart and show review popup
+        // For COD orders, create the order directly
+        const response = await fetch(`${API_URL}/orders`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(orderData),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to create order");
+        }
+
+        const data = await response.json();
+        console.log("Order created successfully:", data);
+        setOrderId(data.order._id);
+
+        // Clear cart and show review popup
         localStorage.removeItem("cart");
         localStorage.removeItem("checkoutData");
         localStorage.removeItem("selectedInsurances");
+        localStorage.removeItem("discount");
+        localStorage.removeItem("discountAmount");
+        localStorage.removeItem("discountCode");
+        setDiscount(0);
+        setPriceDetails((prev) => ({
+          ...prev,
+          discountAmount: 0,
+          total: prev.subtotal + prev.insuranceCost + prev.gst,
+        }));
         setShowReviewPopup(true);
       } else {
-        // Handle Razorpay payment
-        // ... existing Razorpay code ...
+        // For online payments, create Razorpay order first
+        try {
+          // Create Razorpay order
+          const response = await fetch(`${API_URL}/payment/create-order`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(orderData), // Send the complete order data
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(
+              errorData.message || "Failed to create payment order"
+            );
+          }
+
+          const orderResponse = await response.json();
+          if (!orderResponse.success) {
+            throw new Error("Failed to create payment order");
+          }
+
+          // Initialize Razorpay
+          const options = {
+            key: "rzp_test_kr9n3RCA79RSMx", // Hardcode the key for now
+            amount: orderData.amount * 100, // Convert to paise
+            currency: "INR",
+            name: "Pet On Rent",
+            description: "Pet Rental Payment",
+            order_id: orderResponse.order.id,
+            handler: async function (response) {
+              try {
+                // Verify payment
+                const verifyResponse = await fetch(
+                  `${API_URL}/payment/verify-payment`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                      order_id: response.razorpay_order_id,
+                      payment_id: response.razorpay_payment_id,
+                      signature: response.razorpay_signature,
+                    }),
+                  }
+                );
+
+                if (!verifyResponse.ok) {
+                  throw new Error("Payment verification failed");
+                }
+
+                const verifyData = await verifyResponse.json();
+                if (!verifyData.success) {
+                  throw new Error("Payment verification failed");
+                }
+
+                // Create the order after successful payment
+                const orderResponse = await fetch(`${API_URL}/orders`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({
+                    ...orderData,
+                    paymentId: response.razorpay_payment_id,
+                    status: "processing",
+                    paymentStatus: "completed",
+                  }),
+                });
+
+                if (!orderResponse.ok) {
+                  throw new Error("Failed to create order");
+                }
+
+                const data = await orderResponse.json();
+                console.log("Order created successfully:", data);
+                setOrderId(data.order._id);
+
+                // Clear cart and show review popup
+                localStorage.removeItem("cart");
+                localStorage.removeItem("checkoutData");
+                localStorage.removeItem("selectedInsurances");
+                localStorage.removeItem("discount");
+                localStorage.removeItem("discountAmount");
+                localStorage.removeItem("discountCode");
+                setDiscount(0);
+                setPriceDetails((prev) => ({
+                  ...prev,
+                  discountAmount: 0,
+                  total: prev.subtotal + prev.insuranceCost + prev.gst,
+                }));
+                setShowReviewPopup(true);
+              } catch (error) {
+                console.error("Error processing payment:", error);
+                setError(error.message);
+              }
+            },
+            prefill: {
+              name: userInfo.name,
+              email: user.email || "",
+              contact: userInfo.phone,
+            },
+            theme: {
+              color: "#3399cc",
+            },
+          };
+
+          const rzp1 = new window.Razorpay(options);
+          rzp1.open();
+        } catch (error) {
+          console.error("Payment error:", error);
+          setError(error.message);
+        }
       }
     } catch (error) {
       console.error("Error placing order:", error);
@@ -267,50 +406,43 @@ const Checkout = () => {
 
   const handleReviewSubmit = async () => {
     try {
-      // If user clicks submit without rating, treat it as skipping review
-      if (!review.rating) {
-        // Clear data and redirect to orders page
-        localStorage.removeItem("cart");
-        localStorage.removeItem("checkoutData");
-        localStorage.removeItem("selectedInsurances");
-        setShowReviewPopup(false);
-        router.push("/");
-        return;
+      // Get user ID from auth context
+      const userId = user?.id || user?._id;
+      if (!userId) {
+        throw new Error("User ID not found");
       }
 
-      // If rating is provided, submit the review
+      // Get the token from localStorage
       const token = localStorage.getItem("token");
-      if (!token || !user?._id || !orderId) {
-        console.log("Missing required data for review:", {
-          token,
-          userId: user?._id,
-          orderId,
-        });
-        // Still proceed to orders page
-        router.push("/");
-        return;
+      if (!token) {
+        throw new Error("Authentication token not found");
       }
 
-      // Submit review for each pet in the cart
-      for (const item of cart) {
-        try {
-          const petId = item.petId || item._id || item.id;
+      console.log("User ID:", userId);
+      console.log("Cart items:", cart);
+
+      // Only submit review if rating is provided
+      if (review.rating > 0) {
+        // Submit review for each pet in the cart
+        for (const item of cart) {
+          // Make sure we have a valid petId
+          const petId = item._id || item.petId;
           if (!petId) {
-            console.log("Skipping review - no petId for item:", item);
-            continue;
+            console.error("Invalid pet item:", item);
+            continue; // Skip this item if it doesn't have a valid ID
           }
 
           const reviewData = {
-            orderId,
-            petId,
-            userId: user._id,
+            petId: petId,
+            userId: userId,
             rating: parseInt(review.rating),
             comment: review.comment || "",
+            orderType: item.type === "rent" ? "rent" : "purchase",
           };
 
-          console.log("Submitting review:", reviewData);
+          console.log("Submitting review data:", reviewData);
 
-          const response = await fetch("http://localhost:5000/api/reviews", {
+          const response = await fetch(`${API_URL}/reviews`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -319,26 +451,30 @@ const Checkout = () => {
             body: JSON.stringify(reviewData),
           });
 
-          const result = await response.json();
+          const responseData = await response.json();
+          console.log("Review submission response:", responseData);
+
           if (!response.ok) {
-            console.log("Review submission failed:", result);
-          } else {
-            console.log("Review submitted successfully:", result);
+            throw new Error(responseData.message || "Failed to submit review");
           }
-        } catch (error) {
-          console.log("Error submitting individual review:", error);
         }
       }
 
-      // Clear data and redirect regardless of review submission success
-      localStorage.removeItem("cart");
-      localStorage.removeItem("checkoutData");
-      localStorage.removeItem("selectedInsurances");
+      // Dispatch event to notify that a review was submitted
+      window.dispatchEvent(new Event("reviewUpdated"));
+
       setShowReviewPopup(false);
+      setReview({ rating: 0, comment: "" });
+      localStorage.removeItem("cart");
+      localStorage.removeItem("orderId");
       router.push("/");
     } catch (error) {
-      console.log("Error in review submission process:", error);
-      // Redirect to orders page even if there's an error
+      console.error("Error submitting review:", error);
+      // Don't show alert for review submission errors
+      setShowReviewPopup(false);
+      setReview({ rating: 0, comment: "" });
+      localStorage.removeItem("cart");
+      localStorage.removeItem("orderId");
       router.push("/");
     }
   };
@@ -724,7 +860,10 @@ const Checkout = () => {
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
                       key={star}
-                      onClick={() => setReview({ ...review, rating: star })}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setReview({ ...review, rating: star });
+                      }}
                       className={`text-2xl ${
                         star <= review.rating
                           ? "text-yellow-400"

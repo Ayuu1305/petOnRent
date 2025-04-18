@@ -9,6 +9,9 @@ import userRoutes from "./routes/userRoutes.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
 import insuranceRoutes from "./routes/insuranceRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
+import feedbackRoutes from "./routes/feedbackRoutes.js";
+import reviewRoutes from "./routes/reviewRoutes.js";
+import issueRoutes from "./routes/issueRoutes.js";
 import Order from "./models/Order.js";
 import Pet from "./models/Pet.js";
 import Razorpay from "razorpay";
@@ -18,16 +21,24 @@ dotenv.config();
 
 const app = express();
 
-// Middleware
+// CORS configuration
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: ["http://localhost:3000"],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
 app.use(express.json());
 
 // Initialize Razorpay
+console.log("Razorpay Keys:", {
+  key_id: process.env.RAZORPAY_KEY_ID ? "Set" : "Not set",
+  key_secret: process.env.RAZORPAY_KEY_SECRET ? "Set" : "Not set",
+});
+
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
@@ -42,98 +53,18 @@ app.use("/api/pets", petRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/insurance", insuranceRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/feedback", feedbackRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/issues", issueRoutes);
 console.log("✅ All routes loaded");
 
-// Protected route - Create Razorpay order (requires authentication)
-app.post("/api/create-order", userAuth, async (req, res) => {
-  const { amount } = req.body;
-  const userId = req.user.id;
-
-  try {
-    if (!amount) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Missing required field: amount" });
-    }
-
-    const shortUserId = userId.slice(0, 10);
-    const shortTimestamp = Date.now().toString().slice(-6);
-    const receipt = `rcpt_${shortUserId}_${shortTimestamp}`;
-
-    const options = {
-      amount: amount,
-      currency: "INR",
-      receipt: receipt,
-    };
-
-    console.log("Creating Razorpay order with options:", options);
-    const razorpayOrder = await razorpay.orders.create(options);
-    console.log("Razorpay order created:", razorpayOrder);
-
-    res.json({
-      success: true,
-      order: {
-        razorpay_order_id: razorpayOrder.id,
-        amount: razorpayOrder.amount,
-        currency: razorpayOrder.currency,
-      },
-    });
-  } catch (error) {
-    console.error("Error creating Razorpay order:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to create Razorpay order",
-      error: error.message || "Unknown error",
-    });
-  }
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: "Something went wrong!" });
 });
 
-// POST /api/reviews - Add a review for a pet
-app.post("/api/reviews", async (req, res) => {
-  const { petId, userId, rating, comment } = req.body;
-
-  try {
-    // Validate input
-    if (!petId || !userId || !rating) {
-      return res
-        .status(400)
-        .json({ message: "Missing required fields: petId, userId, or rating" });
-    }
-    if (!mongoose.Types.ObjectId.isValid(petId)) {
-      return res.status(400).json({ message: "Invalid petId format" });
-    }
-    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-      return res
-        .status(400)
-        .json({ message: "Rating must be an integer between 1 and 5" });
-    }
-
-    const pet = await Pet.findById(petId);
-    if (!pet) return res.status(404).json({ message: "Pet not found" });
-
-    // Check for duplicate review from the same user
-    const existingReview = pet.reviews.find((r) => r.userId === userId);
-    if (existingReview) {
-      return res
-        .status(400)
-        .json({ message: "You have already reviewed this pet" });
-    }
-
-    pet.reviews.push({ userId, rating, comment: comment || "" });
-    pet.averageRating =
-      pet.reviews.reduce((acc, r) => acc + r.rating, 0) / pet.reviews.length;
-    await pet.save();
-
-    res.status(201).json({ message: "Review added", pet });
-  } catch (error) {
-    console.error("Error adding review:", error);
-    res
-      .status(500)
-      .json({ message: "Error adding review", error: error.message });
-  }
-});
-
-// MongoDB Connection with Retry Logic
+// MongoDB Connection
 const connectDB = async () => {
   try {
     const mongoUri = process.env.MONGO_URI;

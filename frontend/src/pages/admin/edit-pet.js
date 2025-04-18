@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import axios from "axios";
 import { motion } from "framer-motion";
+import { API_URL } from "../../utils/api";
 
 export default function EditPet() {
   const router = useRouter();
@@ -28,7 +29,7 @@ export default function EditPet() {
         const token = localStorage.getItem("adminToken");
         
         // Fetch the single pet using the correct endpoint
-        const response = await axios.get(`http://localhost:5000/api/admin/pets/${id}`, {
+        const response = await axios.get(`${API_URL}/admin/pets/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         
@@ -56,13 +57,12 @@ export default function EditPet() {
   }, [id]);
 
   const handleChange = (e) => {
-    const value = e.target.type === 'number' 
-      ? Number(e.target.value) 
-      : e.target.value;
+    const value =
+      e.target.type === "number" ? Number(e.target.value) : e.target.value;
       
-    setPet(prev => ({
+    setPet((prev) => ({
       ...prev,
-      [e.target.name]: value
+      [e.target.name]: value,
     }));
   };
 
@@ -74,21 +74,17 @@ export default function EditPet() {
       const token = localStorage.getItem("adminToken");
       
       // Log the request details for debugging
-      console.log('Submitting to:', `http://localhost:5000/api/admin/pets/${id}`);
-      console.log('Pet data:', pet);
-      console.log('Token:', token ? 'Present' : 'Missing');
+      console.log("Submitting to:", `${API_URL}/admin/pets/${id}`);
+      console.log("Pet data:", pet);
+      console.log("Token:", token ? "Present" : "Missing");
   
       // Update the pet
-      const response = await axios.put(
-        `http://localhost:5000/api/admin/pets/${id}`,
-        pet,
-        {
+      const response = await axios.put(`${API_URL}/admin/pets/${id}`, pet, {
           headers: { 
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
+          "Content-Type": "application/json",
           },
-        }
-      );
+      });
   
       if (response.data) {
         router.push("/admin");
@@ -101,11 +97,12 @@ export default function EditPet() {
       setError(
         error.response?.data?.error || 
         error.response?.data?.message || 
-        `Failed to update pet (Status: ${error.response?.status || 'unknown'})`
+          `Failed to update pet (Status: ${
+            error.response?.status || "unknown"
+          })`
       );
     }
   };
-
   
   // ... rest of the component remains the same ...
   
@@ -166,7 +163,11 @@ export default function EditPet() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {[
             { name: "name", placeholder: "Pet Name", type: "text" },
-            { name: "category", type: "select", options: ["dog", "cat", "bird"] },
+            {
+              name: "category",
+              type: "select",
+              options: ["dog", "cat", "bird"],
+            },
             { name: "description", placeholder: "Description", type: "text" },
             { name: "color", placeholder: "Color", type: "text" },
             { name: "rentPrice", placeholder: "Rent Price", type: "number" },
@@ -186,7 +187,7 @@ export default function EditPet() {
                   onChange={handleChange}
                   className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:outline-none transition-colors text-black bg-white"
                 >
-                  {field.options.map(option => (
+                  {field.options.map((option) => (
                     <option key={option} value={option}>
                       {option.charAt(0).toUpperCase() + option.slice(1)}
                     </option>

@@ -55,6 +55,8 @@ export const AuthProvider = ({ children }) => {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
+        mode: "cors",
         body: JSON.stringify({ email, password }),
       });
 
